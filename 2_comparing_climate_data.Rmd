@@ -41,7 +41,35 @@ site_info <- tibble(site_no = '09244490',
                     name = 'Yampa_hayden')
 ```
 
+```{r}
+#set parameters of function - these are found on the data rods website linked above
+gldas_mod = c('GLDAS_NOAH025_3H_v2.0', 'GLDAS_NOAH025_3H_v2.1')
+params = c('Wind_f_inst', 'Tair_f_inst')
 
+#time period of interest - v 2.0 and v 2.1 have different time periods of coverage, and to keep the download from hanging, you have to have separate start/end dates
+start_date_2.1 = '2004-01-01'
+end_date_2.1 = '2023-01-01'
+
+#GLDAS data are in 0.25 degree increments, of which Yojoa intersects with a few kernels, the following degrees would prioritize the kernel over the most water area of Yojoa
+lat = 40.5180278
+lon = -107.3997838
+
+#function to make wwws to ping
+make_www_2.1 = function(model, var){#, s_d, e_d, lat, lon) {
+  s_d = start_date_2.1
+  e_d = end_date_2.1
+  paste0('https://hydro1.gesdisc.eosdis.nasa.gov/daac-bin/access/timeseries.cgi?variable=GLDAS2:', model, ':', var, '&startDate=', s_d, 'T00:00&endDate=', e_d, 'T21:00&location=GEOM:POINT(', lon, ',%20', lat, ')&type=asc2')
+}
+
+#make a list of all wwws for download
+v2.1_www = unlist(map2(rep(gldas_mod[2], times = length(params)), params, make_www_2.1))
+```
+
+```{r, eval = F}
+for(w21 in 1:length(v2.1_www)) {
+  download.file(url = v2.1_www[w21], destfile = file.path(gldas_dir, paste0(rep(gldas_mod[2], length(params))[w21], '_', params[w21], '.csv')))
+}
+```
 
 ## Watershed averaged climate data
 
@@ -49,11 +77,24 @@ Using climate engine, download the two same parameters but for the watershed.
 The watershed is stored as a .geojson in the yampa folder. Note, you likely need
 to convert the watershed to a ".shp" file before getting the data from climate 
 engine. 
+```{r}
+# Convert .geojson to .shp
+library(sf)
+library(mapview)
+
+# Read the GeoJSON file
+yampa <- st_read("data/yampa/yampa.geojson")
+mapview(yampa)
+
+# Write the data to a Shapefile
+st_write(yampa[2,], "data/yampa/yampa.shp")
+```
 
 
 ## Compare your climate data anyway you want
 
 Make at least two plots comparing your point versus watershed-averaged climate data. 
+
 
 
 
